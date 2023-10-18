@@ -28,7 +28,7 @@ Terminology:
 
 This package provides a session-like object that can be used to make authorized requests to a Cloud Run or a Cloud Function.
 
-In 90% of the cases, you use it like so:
+In 90% of cases, you use it like so:
 
 * make authorized requests to a Cloud Run:
 
@@ -53,7 +53,7 @@ In 90% of the cases, you use it like so:
     response = session.post("", json={"key": "value"})
     ```
 
-For the remainder 10%:
+For the remaining 10%:
 
 * you may want to set a custom timeout:
 
@@ -75,15 +75,56 @@ For the remainder 10%:
 
 To know more about these and other parameters, check out the docstrings of class `AuthorizedBaseUrlSession`.
 
-### Troubleshooting
+## Best practices
+
+ This is because the session is a low-level object, so you shouldn't use it just anywhere in your code.
+
+* The session is a low-level object, so don't use it just anywhere in your project. Instead, hide it in functions that execute the actions that your service needs to carry out. In general, you will have as many functions as there are endpoints, so keep functions for the same service in the same module. Finally, keep all modules in the parent module `services/`. So it should look like this:
+
+* Organize each service in its own module. In each module, implement each endpoint as a function that internally uses the session to make the request. Then keep all these modules in a module `services/`. For example, your project could look like this:
+
+    ```text
+    app/
+    ├── services/
+    │   ├── __init__.py
+    │   ├── service_1.py
+    │   └── service_2/
+    │       ├── __init__.py
+    │       ├── movies.py
+    │       └── games.py
+    └── main.py
+    ```
+
+    where `service_2/` would be a service with more complicated logic and/or many endpoints, while `service_1.py` would be a much simpler service and its contents could be:
+
+    ```python
+    """
+    Service 1 has two endpoints, "/1" and "/2". They are both
+    GET endpoints. "/1" returns a string. "/2" returns a
+    JSON object.
+
+    We implement each call to these endpoints as functions that return the data
+    we get. We also use these functions to handle exceptions, bad status codes,
+    bad data, etc.
+    """
+    from dealroom_cloud_run_auth import create_session
+
+    _session = create_session("https://my-cloud-run-service.com")
+
+
+    def get_1() -> str | None:
+        # Handle errors...
+        return _session.get("/1").text
+
+
+    def get_2() -> dict:
+        # Handle errors...
+        return _session.get("/2").json()
+    ```
+
+## Troubleshooting
 
 If for any reason the library cannot get the ID token credentials to call the service, it will raise a `google.auth.exceptions.DefaultCredentialsError` exception.
-
-### Best practices
-
-* Module structure: `services/` module.
-
-* How to do retries (tenacity vs. Retry from urllib).
 
 ## Development
 
