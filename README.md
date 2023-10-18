@@ -8,7 +8,7 @@ Terminology:
 
 * **Service**: a Cloud Run or a Cloud Function.
 
-* **Authorized**: a caller that has the appropriate role to call the service. `roles/run.invoker` for Cloud Run, `roles/cloudfunctions.invoker` for Cloud Functions.
+* **Authorized**: a caller that has the appropriate role to call the service, that is `roles/run.invoker` for Cloud Run, `roles/cloudfunctions.invoker` for Cloud Functions.
 
 ## Install
 
