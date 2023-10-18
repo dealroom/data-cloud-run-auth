@@ -71,7 +71,7 @@ For the remainder 10%:
     ...
     ```
 
-📢 ⚠️ You should not need to set the user agent in production, as it is set automatically to a value that identifies the caller.
+⚠️ You should **not** need to set the user agent in production, as it is set automatically to a value that identifies the caller.
 
 To know more about these and other parameters, check out the docstrings of class `AuthorizedBaseUrlSession`.
 
