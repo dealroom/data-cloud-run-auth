@@ -1,13 +1,28 @@
 [tool.poetry]
-name = "ADD-YOUR-REPOSITORY-NAME-HERE"
-version = "0.1.0"
-description = "ADD-YOUR-REPOSITORY-DESCRIPTION-HERE"
+name = "dealroom-cloud-run-auth"
+version = "1.0.0"
+description = "Make authorized requests to private services in GCP using a requests-like interface."
 authors = ["Dealroom Data <data@dealroom.co>"]
+readme = "README.md"
+homepage = "https://github.com/dealroom/data-cloud-run-auth"
+repository = "https://github.com/dealroom/data-cloud-run-auth"
+classifiers = [
+    "Private :: Do Not Upload",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.10,<3.13"
+requests = "^2.31.0"
+google-auth = "^2.23.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
+black = "^23.9.1"
+ipython = "^8.16.1"
+rich = "^13.6.0"
+ruff = "^0.1.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
