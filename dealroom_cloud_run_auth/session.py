@@ -12,7 +12,7 @@ from dealroom_cloud_run_auth.id_token_credentials import (
 URLJoiner = Callable[[str, str], str]
 Timeout = float | tuple[float, float]
 
-_DEFAULT_TIMEOUT = 120.0
+_120_SECONDS = 120.0
 
 
 def default_url_joiner(base_url: str, path: str) -> str:
@@ -126,7 +126,7 @@ class AuthorizedBaseUrlSession(DefaultAuthedSession):
         Any request-specific timeout will override the session-wide timeout for
         that specific request only.
 
-        Notice that the timeout is already set to 120 seconds by default.
+        If unset or set to None, it defaults to 120 seconds.
 
         * can turn off keep-alive:
 
@@ -149,7 +149,7 @@ class AuthorizedBaseUrlSession(DefaultAuthedSession):
         base_url: str,
         *,
         user_agent: str | None = None,
-        timeout: Timeout = _DEFAULT_TIMEOUT,
+        timeout: Timeout | None = _120_SECONDS,
         url_joiner: URLJoiner = default_url_joiner,
         keep_alive: bool = True,
     ) -> None:
@@ -158,7 +158,7 @@ class AuthorizedBaseUrlSession(DefaultAuthedSession):
 
         self._base_url = base_url.rstrip("/")
         self._url_joiner = url_joiner
-        self._timeout = timeout
+        self._timeout = timeout if timeout is not None else _120_SECONDS
 
         if ua := (user_agent or default_user_agent()):
             self.headers["User-Agent"] = ua
@@ -197,7 +197,7 @@ def create_session(
     base_url: str,
     *,
     user_agent: str | None = None,
-    timeout: Timeout = _DEFAULT_TIMEOUT,
+    timeout: Timeout | None = _120_SECONDS,
     url_joiner: URLJoiner = default_url_joiner,
     keep_alive: bool = True,
 ) -> AuthorizedBaseUrlSession:
