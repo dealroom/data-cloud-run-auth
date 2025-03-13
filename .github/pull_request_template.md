@@ -19,7 +19,7 @@ If description is needed, uncomment
 Please, select all that apply. For those that do not apply, please explain why in section "Exceptions"
 
 - [ ] My code follows the [Python styleguide](https://dealroom.slite.com/app/docs/74Ns9cxxCo7bKh)
-- [ ] My code is formatted with [black](https://black.readthedocs.io/en/stable/)
+- [ ] My code is formatted with [ruff](https://docs.astral.sh/ruff/)
 - [ ] I have followed the [GitHub contributing guidelines](https://dealroom.slite.com/app/docs/DRrxsJrbpUvv1B). In particular:
   - [ ] The PR branch is in sync with the base branch
   - [ ] Branch and commit names were generated using the Jira-PR-Meta-Bookmarklet
