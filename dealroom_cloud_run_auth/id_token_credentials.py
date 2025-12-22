@@ -20,13 +20,7 @@ from typing import cast
 
 import google.auth.transport
 from google.auth import credentials as google_auth_credentials
-from google.auth import (
-    environment_vars,
-    exceptions,
-    external_account,
-    identity_pool,
-    impersonated_credentials,
-)
+from google.auth import environment_vars, exceptions, identity_pool
 from google.oauth2 import credentials as oauth2_credentials
 from google.oauth2 import service_account
 
@@ -36,16 +30,10 @@ from google.oauth2 import service_account
 _AUTHORIZED_USER_TYPE = "authorized_user"
 _SERVICE_ACCOUNT_TYPE = "service_account"
 _EXTERNAL_ACCOUNT_TYPE = "external_account"
-# _EXTERNAL_ACCOUNT_AUTHORIZED_USER_TYPE = "external_account_authorized_user"
-# _IMPERSONATED_SERVICE_ACCOUNT_TYPE = "impersonated_service_account"
-# _GDCH_SERVICE_ACCOUNT_TYPE = "gdch_service_account"
 _SUPPORTED_TYPES = (
     _AUTHORIZED_USER_TYPE,
     _SERVICE_ACCOUNT_TYPE,
     _EXTERNAL_ACCOUNT_TYPE,
-    # _EXTERNAL_ACCOUNT_AUTHORIZED_USER_TYPE,
-    # _IMPERSONATED_SERVICE_ACCOUNT_TYPE,
-    # _GDCH_SERVICE_ACCOUNT_TYPE,
 )
 
 _DEFAULT_SCOPES = ["openid"]
@@ -121,44 +109,16 @@ def _load_credentials_from_file(
 
     elif credential_type == _EXTERNAL_ACCOUNT_TYPE:
         try:
-            # Load external account credentials (Workload Identity Federation)
+            # External account credentials are useful when using Workload Identity Federation
             external_creds = identity_pool.Credentials.from_info(  # type: ignore[reportUnknownMemberType]
                 info, scopes=scopes
             )
-
-            # # For WIF, external account credentials typically need to impersonate
-            # # a service account to get ID tokens. Check if impersonation is configured.
-            # service_account_impersonation_url = info.get(
-            #     "service_account_impersonation_url"
-            # )
-            # if service_account_impersonation_url and target_audience:
-            #     # Use impersonation to get ID token credentials
-            #     return impersonated_credentials.IDTokenCredentials(
-            #         external_creds, target_audience=target_audience
-            #     )
-
-            # If no impersonation configured, return the external account credentials
-            # The credentials may support ID tokens directly if the WIF pool is configured for it
-            # Note: Most WIF setups require service account impersonation for ID tokens,
-            # but we allow trying without it to support alternative configurations
             return external_creds
         except (ValueError, AttributeError, TypeError, ImportError) as e:
             raise exceptions.DefaultCredentialsError(
                 f"Failed to load external account credentials from {filename}: {e}"
             )
 
-    # elif credential_type == _EXTERNAL_ACCOUNT_AUTHORIZED_USER_TYPE:
-    #     try:
-    #         # Load external account authorized user credentials
-    #         external_creds = external_account.AuthorizedUserCredentials.from_info(
-    #             info, scopes=scopes or _DEFAULT_SCOPES
-    #         )
-    #         # For authorized user external accounts, wrap similar to regular authorized users
-    #         return IDTokenCredentialsAdapter(credentials=external_creds)
-    #     except (ValueError, AttributeError, TypeError) as e:
-    #         raise exceptions.DefaultCredentialsError(
-    #             f"Failed to load external account authorized user credentials from {filename}: {e}"
-    #         )
     else:
         raise exceptions.DefaultCredentialsError(
             f"The file {filename} does not have a valid type. Type is {credential_type}, "
