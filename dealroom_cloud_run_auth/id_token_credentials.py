@@ -111,7 +111,7 @@ def _load_credentials_from_file(
         try:
             # External account credentials are useful when using Workload Identity Federation
             return identity_pool.Credentials.from_info(  # type: ignore[reportUnknownMemberType]
-                info, scopes=scopes
+                info, scopes=scopes, audience=target_audience
             )
         except ValueError as e:
             raise exceptions.DefaultCredentialsError(
