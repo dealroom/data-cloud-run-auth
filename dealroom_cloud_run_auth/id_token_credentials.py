@@ -126,16 +126,16 @@ def _load_credentials_from_file(
                 info, scopes=scopes
             )
 
-            # For WIF, external account credentials typically need to impersonate
-            # a service account to get ID tokens. Check if impersonation is configured.
-            service_account_impersonation_url = info.get(
-                "service_account_impersonation_url"
-            )
-            if service_account_impersonation_url and target_audience:
-                # Use impersonation to get ID token credentials
-                return impersonated_credentials.IDTokenCredentials(
-                    external_creds, target_audience=target_audience
-                )
+            # # For WIF, external account credentials typically need to impersonate
+            # # a service account to get ID tokens. Check if impersonation is configured.
+            # service_account_impersonation_url = info.get(
+            #     "service_account_impersonation_url"
+            # )
+            # if service_account_impersonation_url and target_audience:
+            #     # Use impersonation to get ID token credentials
+            #     return impersonated_credentials.IDTokenCredentials(
+            #         external_creds, target_audience=target_audience
+            #     )
 
             # If no impersonation configured, return the external account credentials
             # The credentials may support ID tokens directly if the WIF pool is configured for it
