@@ -93,9 +93,7 @@ def _load_credentials_from_file(
         current_credentials = oauth2_credentials.Credentials.from_authorized_user_info(  # type: ignore[reportUnknownMemberType]
             info, scopes=scopes
         )
-        current_credentials = IDTokenCredentialsAdapter(credentials=current_credentials)
-
-        return current_credentials
+        return IDTokenCredentialsAdapter(credentials=current_credentials)
 
     elif credential_type == _SERVICE_ACCOUNT_TYPE:
         try:
@@ -111,7 +109,7 @@ def _load_credentials_from_file(
         try:
             # External account credentials are useful when using Workload Identity Federation
             return identity_pool.Credentials.from_info(  # type: ignore[reportUnknownMemberType]
-                info, scopes=scopes, audience=target_audience
+                info, scopes=scopes
             )
         except ValueError as e:
             raise exceptions.DefaultCredentialsError(

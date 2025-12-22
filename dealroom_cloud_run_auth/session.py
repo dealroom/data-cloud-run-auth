@@ -182,7 +182,9 @@ class AuthorizedBaseUrlSession(DefaultAuthedSession):
     def url_joiner(self) -> URLJoiner:
         return self._url_joiner
 
-    def request(self, method: str, path: str, *args, **kwargs) -> Any | Response:
+    def request(
+        self, method: str, path: str, *args: Any, **kwargs: Any
+    ) -> Any | Response:
         if kwargs.get("timeout") is None and self._timeout:
             # Not sure this is ok
             kwargs["timeout"] = self._timeout
