@@ -102,19 +102,18 @@ def _load_credentials_from_file(
             return service_account.IDTokenCredentials.from_service_account_info(  # type: ignore[reportUnknownMemberType]
                 info, target_audience=target_audience
             )
-        except ValueError:
+        except ValueError as e:
             raise exceptions.DefaultCredentialsError(
-                f"Failed to load service account credentials from {filename}"
+                f"Failed to load service account credentials from {filename}: {e}"
             )
 
     elif credential_type == _EXTERNAL_ACCOUNT_TYPE:
         try:
             # External account credentials are useful when using Workload Identity Federation
-            external_creds = identity_pool.Credentials.from_info(  # type: ignore[reportUnknownMemberType]
+            return identity_pool.Credentials.from_info(  # type: ignore[reportUnknownMemberType]
                 info, scopes=scopes
             )
-            return external_creds
-        except (ValueError, AttributeError, TypeError, ImportError) as e:
+        except ValueError as e:
             raise exceptions.DefaultCredentialsError(
                 f"Failed to load external account credentials from {filename}: {e}"
             )
@@ -156,11 +155,9 @@ def _get_gcloud_sdk_credentials(
     if not os.path.isfile(credentials_filename):
         return None
 
-    current_credentials = _load_credentials_from_file(
+    return _load_credentials_from_file(
         credentials_filename, target_audience=target_audience, scopes=scopes
     )
-
-    return current_credentials
 
 
 def _get_gce_credentials(
