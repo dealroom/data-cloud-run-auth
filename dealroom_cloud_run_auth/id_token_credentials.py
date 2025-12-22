@@ -24,6 +24,7 @@ from google.auth import (
     environment_vars,
     exceptions,
     external_account,
+    identity_pool,
     impersonated_credentials,
 )
 from google.oauth2 import credentials as oauth2_credentials
@@ -121,8 +122,8 @@ def _load_credentials_from_file(
     elif credential_type == _EXTERNAL_ACCOUNT_TYPE:
         try:
             # Load external account credentials (Workload Identity Federation)
-            external_creds = external_account.Credentials.from_info(  # type: ignore[reportUnknownMemberType]
-                info, scopes=scopes or _DEFAULT_SCOPES
+            external_creds = identity_pool.Credentials.from_info(  # type: ignore[reportUnknownMemberType]
+                info, scopes=scopes
             )
 
             # For WIF, external account credentials typically need to impersonate
