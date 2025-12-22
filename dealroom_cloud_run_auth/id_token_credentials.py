@@ -16,10 +16,16 @@
 # under the License.
 import json
 import os
+from typing import cast
 
 import google.auth.transport
 from google.auth import credentials as google_auth_credentials
-from google.auth import environment_vars, exceptions
+from google.auth import (
+    environment_vars,
+    exceptions,
+    external_account,
+    impersonated_credentials,
+)
 from google.oauth2 import credentials as oauth2_credentials
 from google.oauth2 import service_account
 
@@ -29,16 +35,16 @@ from google.oauth2 import service_account
 _AUTHORIZED_USER_TYPE = "authorized_user"
 _SERVICE_ACCOUNT_TYPE = "service_account"
 _EXTERNAL_ACCOUNT_TYPE = "external_account"
-_EXTERNAL_ACCOUNT_AUTHORIZED_USER_TYPE = "external_account_authorized_user"
-_IMPERSONATED_SERVICE_ACCOUNT_TYPE = "impersonated_service_account"
-_GDCH_SERVICE_ACCOUNT_TYPE = "gdch_service_account"
-_VALID_TYPES = (
+# _EXTERNAL_ACCOUNT_AUTHORIZED_USER_TYPE = "external_account_authorized_user"
+# _IMPERSONATED_SERVICE_ACCOUNT_TYPE = "impersonated_service_account"
+# _GDCH_SERVICE_ACCOUNT_TYPE = "gdch_service_account"
+_SUPPORTED_TYPES = (
     _AUTHORIZED_USER_TYPE,
     _SERVICE_ACCOUNT_TYPE,
     _EXTERNAL_ACCOUNT_TYPE,
-    _EXTERNAL_ACCOUNT_AUTHORIZED_USER_TYPE,
-    _IMPERSONATED_SERVICE_ACCOUNT_TYPE,
-    _GDCH_SERVICE_ACCOUNT_TYPE,
+    # _EXTERNAL_ACCOUNT_AUTHORIZED_USER_TYPE,
+    # _IMPERSONATED_SERVICE_ACCOUNT_TYPE,
+    # _GDCH_SERVICE_ACCOUNT_TYPE,
 )
 
 _DEFAULT_SCOPES = ["openid"]
@@ -50,15 +56,15 @@ class IDTokenCredentialsAdapter(google_auth_credentials.Credentials):
     def __init__(self, credentials: oauth2_credentials.Credentials) -> None:
         super().__init__()
         self.credentials = credentials
-        self.token = credentials.id_token
+        self.token = cast(str | None, credentials.id_token)
 
     @property
-    def expired(self) -> bool:
-        return self.credentials.expired
+    def expired(self) -> bool:  # type: ignore[override]
+        return cast(bool, self.credentials.expired)
 
-    def refresh(self, request) -> None:
-        self.credentials.refresh(request)
-        self.token = self.credentials.id_token
+    def refresh(self, request: google.auth.transport.Request) -> None:
+        self.credentials.refresh(request)  # type: ignore[reportUnknownMemberType]
+        self.token = cast(str | None, self.credentials.id_token)
 
 
 def _load_credentials_from_file(
@@ -66,7 +72,8 @@ def _load_credentials_from_file(
 ) -> google_auth_credentials.Credentials:
     """Loads credentials from a file.
 
-    The credentials file must be a service account key or a stored authorized user credential.
+    The credentials file must be a service account key, a stored authorized user credential,
+    or a Workload Identity Federation (WIF) external account credential.
 
     Args:
         filename: The full path to the credentials file.
@@ -94,7 +101,7 @@ def _load_credentials_from_file(
     credential_type = info.get("type")
 
     if credential_type == _AUTHORIZED_USER_TYPE:
-        current_credentials = oauth2_credentials.Credentials.from_authorized_user_info(
+        current_credentials = oauth2_credentials.Credentials.from_authorized_user_info(  # type: ignore[reportUnknownMemberType]
             info, scopes=scopes
         )
         current_credentials = IDTokenCredentialsAdapter(credentials=current_credentials)
@@ -103,7 +110,7 @@ def _load_credentials_from_file(
 
     elif credential_type == _SERVICE_ACCOUNT_TYPE:
         try:
-            return service_account.IDTokenCredentials.from_service_account_info(
+            return service_account.IDTokenCredentials.from_service_account_info(  # type: ignore[reportUnknownMemberType]
                 info, target_audience=target_audience
             )
         except ValueError:
@@ -111,10 +118,51 @@ def _load_credentials_from_file(
                 f"Failed to load service account credentials from {filename}"
             )
 
-    raise exceptions.DefaultCredentialsError(
-        f"The file {filename} does not have a valid type. Type is {credential_type}, "
-        f"expected one of {_VALID_TYPES}."
-    )
+    elif credential_type == _EXTERNAL_ACCOUNT_TYPE:
+        try:
+            # Load external account credentials (Workload Identity Federation)
+            external_creds = external_account.Credentials.from_info(  # type: ignore[reportUnknownMemberType]
+                info, scopes=scopes or _DEFAULT_SCOPES
+            )
+
+            # For WIF, external account credentials typically need to impersonate
+            # a service account to get ID tokens. Check if impersonation is configured.
+            service_account_impersonation_url = info.get(
+                "service_account_impersonation_url"
+            )
+            if service_account_impersonation_url and target_audience:
+                # Use impersonation to get ID token credentials
+                return impersonated_credentials.IDTokenCredentials(
+                    external_creds, target_audience=target_audience
+                )
+
+            # If no impersonation configured, return the external account credentials
+            # The credentials may support ID tokens directly if the WIF pool is configured for it
+            # Note: Most WIF setups require service account impersonation for ID tokens,
+            # but we allow trying without it to support alternative configurations
+            return external_creds
+        except (ValueError, AttributeError, TypeError, ImportError) as e:
+            raise exceptions.DefaultCredentialsError(
+                f"Failed to load external account credentials from {filename}: {e}"
+            )
+
+    # elif credential_type == _EXTERNAL_ACCOUNT_AUTHORIZED_USER_TYPE:
+    #     try:
+    #         # Load external account authorized user credentials
+    #         external_creds = external_account.AuthorizedUserCredentials.from_info(
+    #             info, scopes=scopes or _DEFAULT_SCOPES
+    #         )
+    #         # For authorized user external accounts, wrap similar to regular authorized users
+    #         return IDTokenCredentialsAdapter(credentials=external_creds)
+    #     except (ValueError, AttributeError, TypeError) as e:
+    #         raise exceptions.DefaultCredentialsError(
+    #             f"Failed to load external account authorized user credentials from {filename}: {e}"
+    #         )
+    else:
+        raise exceptions.DefaultCredentialsError(
+            f"The file {filename} does not have a valid type. Type is {credential_type}, "
+            f"expected one of {_SUPPORTED_TYPES}."
+        )
 
 
 def _get_explicit_environ_credentials(
@@ -176,7 +224,7 @@ def _get_gce_credentials(
     if request is None:
         request = _http_client.Request()
 
-    if _metadata.ping(request=request):
+    if _metadata.ping(request=request):  # type: ignore[reportUnknownMemberType]
         return compute_engine.IDTokenCredentials(
             request, target_audience, use_metadata_identity_endpoint=True
         )
